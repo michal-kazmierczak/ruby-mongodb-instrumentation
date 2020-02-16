@@ -4,13 +4,16 @@ module MongoDB
 
       attr_reader :requests
 
-      def initialize(tracer: OpenTracing.global_tracer)
+      def initialize(tracer: OpenTracing.global_tracer, ignored_commands: [])
         @tracer = tracer
+        @ignored_commands = ignored_commands
 
         @requests = {}
       end
 
       def started(event)
+        return if ignore_command?(event.command_name)
+
         # start command span
         tags = {
           # opentracing tags
@@ -53,6 +56,12 @@ module MongoDB
 
         span.finish()
         @requests.delete(event.request_id)
+      end
+
+      private
+
+      def ignore_command?(command_name)
+        @ignored_commands.include?(command_name)
       end
     end
   end

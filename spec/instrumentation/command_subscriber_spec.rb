@@ -23,6 +23,19 @@ RSpec.describe MongoDB::Instrumentation::CommandSubscriber do
     it "creates a new span" do
       expect(tracer.spans.count).to be 1
     end
+
+    context "ignoring listed commands" do
+      let (:subscriber) do
+        MongoDB::Instrumentation::CommandSubscriber.new(tracer: tracer, ignored_commands: %w[ismaster])
+      end
+      let (:start_event) do
+        Mongo::Monitoring::Event::CommandStarted.new("ismaster", "test_db", "127.0.0.1", 1, 1, "{}")
+      end
+
+      it "does not create span for ignored command" do
+        expect(tracer.spans.count).to be 0
+      end
+    end
   end
 
   describe :succeeded do
@@ -32,7 +45,7 @@ RSpec.describe MongoDB::Instrumentation::CommandSubscriber do
     before do
       subscriber.started(start_event)
     end
-    
+
     it "finishes a span if it exists" do
       subscriber.succeeded(succeeded_event)
 
